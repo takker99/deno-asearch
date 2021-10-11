@@ -42,13 +42,23 @@ export function Asearch(source: string) {
     return str.split("").map((char) => char.charCodeAt(0));
   }
 
-  function match(str: string, ambig = 0) {
+  function test(str: string, distance = 0) {
     const state = getState(str);
-    ambig = Math.min(INITSTATE.length - 1, ambig);
-    return (state[ambig] & acceptpat) !== 0;
+    distance = Math.min(INITSTATE.length - 1, distance);
+    return (state[distance] & acceptpat) !== 0;
   }
 
-  match.source = source;
-
-  return match;
+  function match(str: string) {
+    const state = getState(str);
+    if ((state[INITSTATE.length - 1] & acceptpat) === 0) {
+      return { found: false };
+    }
+    const distance = state.findIndex((i) => (i & acceptpat) !== 0);
+    return { found: true, distance };
+  }
+  return {
+    test,
+    match,
+    source,
+  };
 }
