@@ -8,13 +8,9 @@ const toupper = (c: number) => islower(c) ? (c - 0x20) : c;
 const wildCard = 0x20;
 
 export function Asearch(source: string) {
-  const shiftpat = [] as number[];
+  const shiftpat = new Uint32Array(MAXCHAR);
   let epsilon = 0;
-  let acceptpat = 0;
   let mask = INITPAT;
-  for (let i = 0; i < MAXCHAR; i++) {
-    shiftpat[i] = 0;
-  }
   for (const i of unpack(source)) {
     if (i === wildCard) {
       epsilon |= mask;
@@ -25,13 +21,10 @@ export function Asearch(source: string) {
       mask = mask >>> 1;
     }
   }
-  acceptpat = mask;
+  const acceptpat = mask;
 
   function getState(str = "") {
-    let i0 = INITSTATE[0];
-    let i1 = INITSTATE[1];
-    let i2 = INITSTATE[2];
-    let i3 = INITSTATE[3];
+    let [i0, i1, i2, i3] = INITSTATE;
     for (const c of unpack(str)) {
       mask = shiftpat[c];
       i3 = (i3 & epsilon) | ((i3 & mask) >>> 1) | (i2 >>> 1) | i2;
