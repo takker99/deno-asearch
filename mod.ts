@@ -38,10 +38,6 @@ export function Asearch(source: string) {
     return [i0, i1, i2, i3];
   }
 
-  function unpack(str: string) {
-    return str.split("").map((char) => char.charCodeAt(0));
-  }
-
   function test(str: string, distance = 0) {
     const state = getState(str);
     distance = Math.min(INITSTATE.length - 1, distance);
@@ -61,4 +57,10 @@ export function Asearch(source: string) {
     match,
     source,
   };
+}
+
+function* unpack(str: string) {
+  for (const char of str) {
+    yield char.charCodeAt(0);
+  }
 }
