@@ -18,7 +18,7 @@ export function Asearch(source: string) {
       shiftpat[i] |= mask;
       shiftpat[toupper(i)] |= mask;
       shiftpat[tolower(i)] |= mask;
-      mask = mask >>> 1;
+      mask >>>= 1;
     }
   }
   const acceptpat = mask;
