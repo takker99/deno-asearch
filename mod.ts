@@ -8,7 +8,7 @@ const toupper = (c: number) => islower(c) ? (c - 0x20) : c;
 const wildCard = 0x20;
 
 export function Asearch(source: string) {
-  const shiftpat = new Uint32Array(MAXCHAR);
+  const shiftpat = new Float64Array(MAXCHAR);
   let epsilon = 0;
   let mask = INITPAT;
   for (const i of unpack(source)) {
