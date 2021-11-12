@@ -6,6 +6,8 @@ import { Asearch } from "./mod.ts";
 import { Asearch as AsearchMap } from "./mod_map.ts";
 import { Asearch as AsearchObject } from "./mod_object.ts";
 import { Asearch as AsearchArray } from "./mod_array.ts";
+import { Asearch as AsearchCodePoint } from "./mod_codepoint.ts";
+import { Asearch as AsearchCharMap } from "./mod_charmap.ts";
 import { getRandomChar } from "./mock.ts";
 
 function getRandomText(length: number) {
@@ -16,7 +18,14 @@ function getRandomText(length: number) {
   return text;
 }
 const chunkNum = 100;
-const engines = [Asearch, AsearchArray, AsearchMap, AsearchObject];
+const engines = [
+  Asearch,
+  // AsearchArray,
+  // AsearchMap,
+  // AsearchObject,
+  AsearchCodePoint,
+  AsearchCharMap,
+];
 for (const engine of engines) {
   for (let j = 1; j < 3; j++) {
     const { test } = engine(getRandomText(5 * j));
