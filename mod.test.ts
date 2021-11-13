@@ -1,106 +1,78 @@
 import { Asearch } from "./mod.ts";
 import {
-  describe,
-  expect,
-  it,
-  run,
-} from "https://deno.land/x/tincan@1.0.0/mod.ts";
+  assert,
+  assertEquals,
+} from "https://deno.land/std@0.114.0/testing/asserts.ts";
 
-const createTest = ({ test }: ReturnType<typeof Asearch>) =>
-  (target: string, result = true, ambig = 0) =>
-    it(`shoud ${result ? "" : "not "}match "${target}"`, () =>
-      expect(test(target, ambig)).toBe(result));
-const createMatch = ({ match }: ReturnType<typeof Asearch>) =>
-  (left: string, right: ReturnType<ReturnType<typeof Asearch>["match"]>) =>
-    it(
-      `shoud ${right.found ? "" : "not "}match "${left}" ${
-        right.found ? `whose Levenshtein distance is ${right.distance}` : ""
-      }`,
-      () => expect(match(left)).toEqual(right),
-    );
-
-describe('pattern "abcde"', () => {
+Deno.test('shoud have property "source"', () => {
   const asearch = Asearch("abcde");
-  it('shoud have property "source"', () =>
-    expect(asearch.source).toBe("abcde"));
-
-  const test = createTest(asearch);
-  test("abcde");
-  test("aBCDe");
-  test("abXcde", true, 1);
-  test("abXcde", false);
-  test("ab?de", true, 1);
-  test("ab?de", false);
-  test("abXXde", true, 2);
-  test("abXXde", false, 1);
-  test("abde", true, 1);
-  test("abde", false);
-  test("ae", true, 3);
-  test("ae", false, 2);
-  test("ae", false, 1);
-  test("ae", false);
-  test("aedcb", false, 3);
-  test("aedcb", false, 2);
-  test("aedcb", false, 1);
-  test("aedcb", false);
-
-  const match = createMatch(asearch);
-  match("abcde", { found: true, distance: 0 });
-  match("aBCDe", { found: true, distance: 0 });
-  match("abXcde", { found: true, distance: 1 });
-  match("ab?de", { found: true, distance: 1 });
-  match("abde", { found: true, distance: 1 });
-  match("abXXde", { found: true, distance: 2 });
-  match("ae", { found: true, distance: 3 });
-  match("aedcb", { found: false });
+  assertEquals(asearch.source, "abcde");
 });
 
-describe('pattern "ab de"', () => {
-  const asearch = Asearch("ab de");
-
-  const test = createTest(asearch);
-  test("abcde");
-  test("abccde");
-  test("abXXXXXXXde", true);
-  test("abcccccxe", true, 1);
-  test("abcccccxe", false);
-
-  const match = createMatch(asearch);
-  match("abcde", { found: true, distance: 0 });
-  match("abccde", { found: true, distance: 0 });
-  match("abXXXXXXXde", { found: true, distance: 0 });
-  match("abcccccxe", { found: true, distance: 1 });
+Deno.test("check `test()`", () => {
+  const { test } = Asearch("abcde");
+  assert(test("abcde", 0));
+  assert(test("abcde", 1));
+  assert(test("abcde", 2));
+  assert(test("abcde", 3));
+  assert(!test("abccde", 0));
+  assert(test("abccde", 1));
+  assert(test("abccde", 2));
+  assert(test("abccde", 3));
+  assert(!test("abde", 0));
+  assert(test("abde", 1));
+  assert(test("abde", 2));
+  assert(test("abde", 3));
+  assert(!test("abdde", 0));
+  assert(test("abdde", 1));
+  assert(test("abdde", 2));
+  assert(test("abdde", 3));
 });
 
-describe('pattern "abcde"', () => {
-  const asearch = Asearch("abcde");
-
-  const test = createTest(asearch);
-  test("abcde");
-  test("abcde", true, 1);
-  test("abcd", false);
-  test("abcd", true, 1);
+const testData: Record<string, [string, number][]> = {
+  "abcde": [
+    ["abcde", 0],
+    ["aBCDe", 0],
+    ["abcd", 1],
+    ["aabcde", 1],
+    ["abcdee", 1],
+    ["ab?de", 1],
+    ["abXXde", 2],
+    ["ae", 3],
+    ["aedcb", 4],
+  ],
+  "ab de": [
+    ["abcde", 0],
+    ["abccde", 0],
+    ["abXXXXXXXde", 0],
+    ["abcccccxe", 1],
+  ],
+  "漢字文字列": [
+    ["漢字文字列", 0],
+    ["漢字の文字列", 1],
+    ["漢字文字", 1],
+    ["漢字文字烈", 1],
+    ["漢字辞典", 3],
+    ["漢和辞典", 4],
+  ],
+};
+Deno.test("check `match()`", async (t) => {
+  for (const [pattern, candidates] of Object.entries(testData)) {
+    await t.step(`pattern ${pattern}`, async ({ step }) => {
+      const { match } = Asearch(pattern);
+      for (const [text, distance] of candidates) {
+        if (distance < 4) {
+          await step(
+            `Levenshtein distance from "${text}" should be ${distance}`,
+            () => assertEquals(match(text), { found: true, distance }),
+          );
+        } else {
+          await step(
+            `Levenshtein distance from "${text}" should be more than 3`,
+            () => assertEquals(match(text), { found: false }),
+          );
+        }
+      }
+    });
+  }
 });
-
-describe('pattern "漢字文字列"', () => {
-  const asearch = Asearch("漢字文字列");
-
-  const test = createTest(asearch);
-  test("漢字文字列");
-  test("漢字の文字列", false);
-  test("漢字の文字列", true, 1);
-  test("漢字文字", false);
-  test("漢字文字", true, 1);
-  test("漢字文字烈", false);
-  test("漢字文字烈", true, 1);
-  test("漢和辞典", false, 2);
-
-  const match = createMatch(asearch);
-  match("漢字文字列", { found: true, distance: 0 });
-  match("漢字の文字列", { found: true, distance: 1 });
-  match("漢字文字", { found: true, distance: 1 });
-  match("漢字文字烈", { found: true, distance: 1 });
-  match("漢和辞典", { found: false });
-});
-
-run();
