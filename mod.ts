@@ -40,7 +40,9 @@ export function Asearch(source: string) {
     return (state[distance] & acceptpat) !== 0;
   }
 
-  function match(str: string) {
+  function match(
+    str: string,
+  ): { found: false } | { found: true; distance: number } {
     const state = getState(str);
     if ((state[INITSTATE.length - 1] & acceptpat) === 0) {
       return { found: false };
