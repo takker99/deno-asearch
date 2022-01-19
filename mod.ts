@@ -7,45 +7,45 @@ const wildCard = " ";
  * @param source 検索対象の文字列
  */
 export function preparePatterns(source: string) {
-  const shiftPattern = new Map<string, number>();
-  let epsilonPattern = 0;
-  let acceptPattern = INITPATTERN;
+  const shiftMasks = new Map<string, number>();
+  let epsilonMask = 0;
+  let acceptState = INITPATTERN;
   for (const char of source) {
     if (char === wildCard) {
-      epsilonPattern |= acceptPattern;
+      epsilonMask |= acceptState;
     } else {
       for (const i of [char, char.toLowerCase(), char.toUpperCase()]) {
-        const pat = (shiftPattern.get(i) ?? 0) | acceptPattern;
-        shiftPattern.set(i, pat);
+        const pat = (shiftMasks.get(i) ?? 0) | acceptState;
+        shiftMasks.set(i, pat);
       }
-      acceptPattern >>>= 1;
+      acceptState >>>= 1;
     }
   }
 
-  return [shiftPattern, epsilonPattern, acceptPattern] as const;
+  return [shiftMasks, epsilonMask, acceptState] as const;
 }
 
 export type State = [number, number, number, number];
 /** 状態遷移機械に文字列を入力する
  *
  * @param text 入力する文字列
- * @param shiftPattern 遷移可能な場所を示したビットパタンのテーブル
- * @param epsilonPattern 任意文字遷移が可能な場所を示したビットパタン
+ * @param shiftMasks 遷移可能な場所を示したビットパタンのテーブル
+ * @param epsilonMask 任意文字遷移が可能な場所を示したビットパタン
  * @param 入力前の状態遷移機械
  */
 export function moveState(
   text: string,
-  shiftPattern: Map<string, number>,
-  epsilonPattern: number,
+  shiftMasks: Map<string, number>,
+  epsilonMask: number,
   prevState = INITSTATE,
 ): State {
   let [i0, i1, i2, i3] = prevState;
   for (const char of text) {
-    const mask = shiftPattern.get(char) ?? 0;
-    i3 = (i3 & epsilonPattern) | ((i3 & mask) >>> 1) | (i2 >>> 1) | i2;
-    i2 = (i2 & epsilonPattern) | ((i2 & mask) >>> 1) | (i1 >>> 1) | i1;
-    i1 = (i1 & epsilonPattern) | ((i1 & mask) >>> 1) | (i0 >>> 1) | i0;
-    i0 = (i0 & epsilonPattern) | ((i0 & mask) >>> 1);
+    const mask = shiftMasks.get(char) ?? 0;
+    i3 = (i3 & epsilonMask) | ((i3 & mask) >>> 1) | (i2 >>> 1) | i2;
+    i2 = (i2 & epsilonMask) | ((i2 & mask) >>> 1) | (i1 >>> 1) | i1;
+    i1 = (i1 & epsilonMask) | ((i1 & mask) >>> 1) | (i0 >>> 1) | i0;
+    i0 = (i0 & epsilonMask) | ((i0 & mask) >>> 1);
     i1 |= i0 >>> 1;
     i2 |= i1 >>> 1;
     i3 |= i2 >>> 1;
@@ -86,11 +86,11 @@ export interface AsearchResult {
  * @param source 検索対象の文字列
  */
 export function Asearch(source: string): AsearchResult {
-  const [shiftPattern, epsilonPattern, acceptPattern] = preparePatterns(source);
+  const [shiftMasks, epsilonMask, acceptState] = preparePatterns(source);
 
   function test(str: string, maxDistance: 0 | 1 | 2 | 3 = 0) {
-    const state = moveState(str, shiftPattern, epsilonPattern);
-    return (state[maxDistance] & acceptPattern) !== 0;
+    const state = moveState(str, shiftMasks, epsilonMask);
+    return (state[maxDistance] & acceptState) !== 0;
   }
 
   function match(
@@ -98,19 +98,19 @@ export function Asearch(source: string): AsearchResult {
   ): MatchResult {
     const [state0, state1, state2, state3] = moveState(
       str,
-      shiftPattern,
-      epsilonPattern,
+      shiftMasks,
+      epsilonMask,
     );
-    if ((state3 & acceptPattern) === 0) {
+    if ((state3 & acceptState) === 0) {
       return { found: false };
     }
     return {
       found: true,
-      distance: (state0 & acceptPattern) !== 0
+      distance: (state0 & acceptState) !== 0
         ? 0
-        : (state1 & acceptPattern) !== 0
+        : (state1 & acceptState) !== 0
         ? 1
-        : (state2 & acceptPattern) !== 0
+        : (state2 & acceptState) !== 0
         ? 2
         : 3,
     };
