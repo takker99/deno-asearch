@@ -96,24 +96,22 @@ export function Asearch(source: string): AsearchResult {
   function match(
     str: string,
   ): MatchResult {
-    const [state0, state1, state2, state3] = moveState(
+    const state = moveState(
       str,
       shiftMasks,
       epsilonMask,
     );
-    if ((state3 & acceptState) === 0) {
-      return { found: false };
+    let flag = false;
+    for (let i = INITSTATE.length - 1; i >= 0; i--) {
+      if ((state[i] & acceptState) === 0) {
+        if (flag) {
+          return { found: true, distance: i + 1 as 0 | 1 | 2 | 3 };
+        }
+      } else {
+        flag = true;
+      }
     }
-    return {
-      found: true,
-      distance: (state0 & acceptState) !== 0
-        ? 0
-        : (state1 & acceptState) !== 0
-        ? 1
-        : (state2 & acceptState) !== 0
-        ? 2
-        : 3,
-    };
+    return flag ? { found: true, distance: 0 } : { found: false };
   }
 
   return {

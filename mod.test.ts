@@ -30,6 +30,41 @@ Deno.test("check `test()`", () => {
 });
 
 const testData: Record<string, [string, number][]> = {
+  "": [
+    ["a", 1],
+    ["ab", 2],
+    ["abc", 3],
+    ["abcd", 4],
+    ["abcde", 5],
+  ],
+  "a": [
+    ["a", 0],
+    ["b", 1],
+    ["ab", 1],
+    ["bab", 2],
+    ["abcd", 3],
+    ["bcde", 4],
+    ["abcde", 4],
+  ],
+  "ab": [
+    ["ab", 0],
+    ["a", 1],
+    ["aa", 1],
+    ["abc", 1],
+    ["bac", 2],
+    ["bcd", 3],
+    ["bcde", 4],
+  ],
+  "abc": [
+    ["abc", 0],
+    ["ac", 1],
+    ["abb", 1],
+    ["aabc", 1],
+    ["a", 2],
+    ["acb", 2],
+    ["aabcd", 2],
+    ["bca", 3],
+  ],
   "abcde": [
     ["abcde", 0],
     ["aBCDe", 0],
@@ -54,6 +89,14 @@ const testData: Record<string, [string, number][]> = {
     ["漢字文字烈", 1],
     ["漢字辞典", 3],
     ["漢和辞典", 4],
+  ],
+  "emoji✅": [
+    ["emoji✅", 0],
+    ["emoj✅", 1],
+    ["emojji✅", 1],
+    ["emoji⬜", 1],
+    ["emmoji⬜", 2],
+    ["emoji⬜✅❌", 2],
   ],
 };
 Deno.test("check `match()`", async (t) => {
