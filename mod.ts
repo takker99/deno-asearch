@@ -89,6 +89,7 @@ export function Asearch(source: string): AsearchResult {
   const [shiftMasks, epsilonMask, acceptState] = preparePatterns(source);
 
   function test(str: string, maxDistance: 0 | 1 | 2 | 3 = 0) {
+    if (str === "") return maxDistance >= source.length;
     const state = moveState(str, shiftMasks, epsilonMask);
     return (state[maxDistance] & acceptState) !== 0;
   }
@@ -96,6 +97,11 @@ export function Asearch(source: string): AsearchResult {
   function match(
     str: string,
   ): MatchResult {
+    if (str === "") {
+      return 3 < source.length
+        ? { found: false }
+        : { found: true, distance: source.length as 0 | 1 | 2 | 3 };
+    }
     const state = moveState(
       str,
       shiftMasks,
