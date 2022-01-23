@@ -2,7 +2,7 @@ import { Asearch } from "./mod.ts";
 import {
   assert,
   assertEquals,
-} from "https://deno.land/std@0.114.0/testing/asserts.ts";
+} from "https://deno.land/std@0.122.0/testing/asserts.ts";
 
 Deno.test('shoud have property "source"', () => {
   const asearch = Asearch("abcde");
