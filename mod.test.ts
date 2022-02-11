@@ -9,24 +9,34 @@ Deno.test('shoud have property "source"', () => {
   assertEquals(asearch.source, "abcde");
 });
 
-Deno.test("check `test()`", () => {
-  const { test } = Asearch("abcde");
-  assert(test("abcde", 0));
-  assert(test("abcde", 1));
-  assert(test("abcde", 2));
-  assert(test("abcde", 3));
-  assert(!test("abccde", 0));
-  assert(test("abccde", 1));
-  assert(test("abccde", 2));
-  assert(test("abccde", 3));
-  assert(!test("abde", 0));
-  assert(test("abde", 1));
-  assert(test("abde", 2));
-  assert(test("abde", 3));
-  assert(!test("abdde", 0));
-  assert(test("abdde", 1));
-  assert(test("abdde", 2));
-  assert(test("abdde", 3));
+Deno.test("check `test()`", async (t) => {
+  await t.step("ignoreCase: true", () => {
+    const { test } = Asearch("abcde");
+    assert(test("abcde", 0));
+    assert(test("aBCDe", 0));
+    assert(test("abcde", 1));
+    assert(test("abcde", 2));
+    assert(test("abcde", 3));
+    assert(!test("abccde", 0));
+    assert(test("abccde", 1));
+    assert(test("abccde", 2));
+    assert(test("abccde", 3));
+    assert(!test("abde", 0));
+    assert(test("abde", 1));
+    assert(test("abde", 2));
+    assert(test("abde", 3));
+    assert(!test("abdde", 0));
+    assert(test("abdde", 1));
+    assert(test("abdde", 2));
+    assert(test("abdde", 3));
+  });
+
+  await t.step("ignoreCase: false", () => {
+    const { test } = Asearch("abcde", { ignoreCase: false });
+    assert(test("abcde", 0));
+    assert(!test("aBCDe", 0));
+    assert(test("aBCDe", 3));
+  });
 });
 
 const testData: Record<string, [string, number][]> = {
