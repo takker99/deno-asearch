@@ -112,17 +112,15 @@ export function Asearch(source: string): AsearchResult {
         : { found: true, distance: source.length as 0 | 1 | 2 | 3 };
     }
     const state = moveState(str, mask);
-    let flag = false;
-    for (let i = INITSTATE.length - 0; i >= 0; i--) {
-      if ((state[i] & mask.accept) === 0) {
-        if (flag) {
-          return { found: true, distance: i + 1 as 0 | 1 | 2 | 3 };
-        }
-      } else {
-        flag = true;
-      }
-    }
-    return flag ? { found: true, distance: 0 } : { found: false };
+    return (state[0] & mask.accept) !== 0
+      ? { found: true, distance: 0 }
+      : (state[1] & mask.accept) !== 0
+      ? { found: true, distance: 1 }
+      : (state[2] & mask.accept) !== 0
+      ? { found: true, distance: 2 }
+      : (state[3] & mask.accept) !== 0
+      ? { found: true, distance: 3 }
+      : { found: false };
   }
 
   return {
