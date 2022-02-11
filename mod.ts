@@ -2,50 +2,59 @@ const INITPATTERN = 0x80000000;
 export const INITSTATE = [INITPATTERN, 0, 0, 0] as State;
 const wildCard = " ";
 
+/** masks used for Bitap algorithm */
+export interface Mask {
+  /** masks represented by occurrences of each charcter */
+  shift: Map<string, number>;
+  /** the wild mask */
+  wild: number;
+  /** the mask represented by accept state */
+  accept: number;
+}
+
 /** あいまい検索に使うマスクを作成する
  *
  * @param source 検索対象の文字列
  */
-export function preparePatterns(source: string) {
-  const shiftMasks = new Map<string, number>();
-  let epsilonMask = 0;
-  let acceptState = INITPATTERN;
+export function makeMask(source: string): Mask {
+  const shift = new Map<string, number>();
+  let wild = 0;
+  let accept = INITPATTERN;
   for (const char of source) {
     if (char === wildCard) {
-      epsilonMask |= acceptState;
+      wild |= accept;
     } else {
       for (const i of [char, char.toLowerCase(), char.toUpperCase()]) {
-        const pat = (shiftMasks.get(i) ?? 0) | acceptState;
-        shiftMasks.set(i, pat);
+        const pat = (shift.get(i) ?? 0) | accept;
+        shift.set(i, pat);
       }
-      acceptState >>>= 1;
+      accept >>>= 1;
     }
   }
 
-  return [shiftMasks, epsilonMask, acceptState] as const;
+  return { shift, wild, accept };
 }
 
 export type State = [number, number, number, number];
 /** 状態遷移機械に文字列を入力する
  *
  * @param text 入力する文字列
- * @param shiftMasks 遷移可能な場所を示したビットパタンのテーブル
- * @param epsilonMask 任意文字遷移が可能な場所を示したビットパタン
- * @param 入力前の状態遷移機械
+ * @param mask bit masks
+ * @param state 入力前の状態遷移機械
  */
 export function moveState(
   text: string,
-  shiftMasks: Map<string, number>,
-  epsilonMask: number,
-  prevState = INITSTATE,
+  mask: Omit<Mask, "accept">,
+  state = INITSTATE,
 ): State {
-  let [i0, i1, i2, i3] = prevState;
+  let [i0, i1, i2, i3] = state;
+  const { shift, wild } = mask;
   for (const char of text) {
-    const mask = shiftMasks.get(char) ?? 0;
-    i3 = (i3 & epsilonMask) | ((i3 & mask) >>> 1) | (i2 >>> 1) | i2;
-    i2 = (i2 & epsilonMask) | ((i2 & mask) >>> 1) | (i1 >>> 1) | i1;
-    i1 = (i1 & epsilonMask) | ((i1 & mask) >>> 1) | (i0 >>> 1) | i0;
-    i0 = (i0 & epsilonMask) | ((i0 & mask) >>> 1);
+    const charMask = shift.get(char) ?? 0;
+    i3 = (i3 & wild) | ((i3 & charMask) >>> 1) | (i2 >>> 1) | i2;
+    i2 = (i2 & wild) | ((i2 & charMask) >>> 1) | (i1 >>> 1) | i1;
+    i1 = (i1 & wild) | ((i1 & charMask) >>> 1) | (i0 >>> 1) | i0;
+    i0 = (i0 & wild) | ((i0 & charMask) >>> 1);
     i1 |= i0 >>> 1;
     i2 |= i1 >>> 1;
     i3 |= i2 >>> 1;
@@ -86,12 +95,12 @@ export interface AsearchResult {
  * @param source 検索対象の文字列
  */
 export function Asearch(source: string): AsearchResult {
-  const [shiftMasks, epsilonMask, acceptState] = preparePatterns(source);
+  const mask = makeMask(source);
 
   function test(str: string, maxDistance: 0 | 1 | 2 | 3 = 0) {
     if (str === "") return maxDistance >= source.length;
-    const state = moveState(str, shiftMasks, epsilonMask);
-    return (state[maxDistance] & acceptState) !== 0;
+    const state = moveState(str, mask);
+    return (state[maxDistance] & mask.accept) !== 0;
   }
 
   function match(
@@ -102,14 +111,10 @@ export function Asearch(source: string): AsearchResult {
         ? { found: false }
         : { found: true, distance: source.length as 0 | 1 | 2 | 3 };
     }
-    const state = moveState(
-      str,
-      shiftMasks,
-      epsilonMask,
-    );
+    const state = moveState(str, mask);
     let flag = false;
-    for (let i = INITSTATE.length - 1; i >= 0; i--) {
-      if ((state[i] & acceptState) === 0) {
+    for (let i = INITSTATE.length - 0; i >= 0; i--) {
+      if ((state[i] & mask.accept) === 0) {
         if (flag) {
           return { found: true, distance: i + 1 as 0 | 1 | 2 | 3 };
         }
