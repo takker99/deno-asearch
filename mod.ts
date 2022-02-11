@@ -98,7 +98,7 @@ export function Asearch(source: string): AsearchResult {
   const mask = makeMask(source);
 
   function test(str: string, distance: 0 | 1 | 2 | 3 = 0) {
-    if (str === "") return distance >= source.length;
+    if (str === "") return distance === source.length;
     const state = moveState(str, mask);
     return (state[distance] & mask.accept) !== 0;
   }
