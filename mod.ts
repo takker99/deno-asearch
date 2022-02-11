@@ -12,11 +12,20 @@ export interface Mask {
   accept: number;
 }
 
+/** options for search */
+export interface SearchOption {
+  /** turn false if you want to disable case insensitive search
+   *
+   * @default true
+   */
+  ignoreCase?: boolean;
+}
 /** あいまい検索に使うマスクを作成する
  *
  * @param source 検索対象の文字列
  */
-export function makeMask(source: string): Mask {
+export function makeMask(source: string, option?: SearchOption): Mask {
+  const { ignoreCase = true } = option ?? {};
   const shift = new Map<string, number>();
   let wild = 0;
   let accept = INITPATTERN;
@@ -24,7 +33,11 @@ export function makeMask(source: string): Mask {
     if (char === wildCard) {
       wild |= accept;
     } else {
-      for (const i of [char, char.toLowerCase(), char.toUpperCase()]) {
+      for (
+        const i of ignoreCase
+          ? [char, char.toLowerCase(), char.toUpperCase()]
+          : [char]
+      ) {
         const pat = (shift.get(i) ?? 0) | accept;
         shift.set(i, pat);
       }
@@ -93,9 +106,10 @@ export interface AsearchResult {
 /** あいまい検索を実行する函数を作る
  *
  * @param source 検索対象の文字列
+ * @param option search options
  */
-export function Asearch(source: string): AsearchResult {
-  const mask = makeMask(source);
+export function Asearch(source: string, option?: SearchOption): AsearchResult {
+  const mask = makeMask(source, option);
 
   function test(str: string, distance: 0 | 1 | 2 | 3 = 0) {
     if (str === "") return distance === source.length;
