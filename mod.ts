@@ -75,12 +75,12 @@ export type MatchResult = {
 export interface AsearchResult {
   /** 検索対象の文字列 */ source: string;
 
-  /** 与えた文字列がLevenshtein距離`maxDistance`以下でマッチするか判定する
+  /** 与えた文字列が特定のLevenshtein距離でマッチするか判定する
    *
    * @param str 判定する文字列
-   * @param maxDistance 許容する最大Levenshtein距離
+   * @param distance 指定するLevenshtein距離
    */
-  test: (str: string, maxDistance: 0 | 1 | 2 | 3) => boolean;
+  test: (str: string, distance: 0 | 1 | 2 | 3) => boolean;
 
   /** 与えた文字列と検索対象文字列とのLevenshtein距離を返す
    *
@@ -97,10 +97,10 @@ export interface AsearchResult {
 export function Asearch(source: string): AsearchResult {
   const mask = makeMask(source);
 
-  function test(str: string, maxDistance: 0 | 1 | 2 | 3 = 0) {
-    if (str === "") return maxDistance >= source.length;
+  function test(str: string, distance: 0 | 1 | 2 | 3 = 0) {
+    if (str === "") return distance === source.length;
     const state = moveState(str, mask);
-    return (state[maxDistance] & mask.accept) !== 0;
+    return (state[distance] & mask.accept) !== 0;
   }
 
   function match(
