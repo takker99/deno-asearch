@@ -24,7 +24,7 @@ export interface SearchOption {
  *
  * @param source 検索対象の文字列
  */
-export function makeMask(source: string, option?: SearchOption): Mask {
+export const makeMask = (source: string, option?: SearchOption): Mask => {
   const { ignoreCase = true } = option ?? {};
   const shift = new Map<string, number>();
   let wild = 0;
@@ -46,7 +46,7 @@ export function makeMask(source: string, option?: SearchOption): Mask {
   }
 
   return { shift, wild, accept };
-}
+};
 
 export type State = [number, number, number, number];
 /** 状態遷移機械に文字列を入力する
@@ -55,11 +55,11 @@ export type State = [number, number, number, number];
  * @param mask bit masks
  * @param state 入力前の状態遷移機械
  */
-export function moveState(
+export const moveState = (
   text: string,
   mask: Omit<Mask, "accept">,
   state = INITSTATE,
-): State {
+): State => {
   let [i0, i1, i2, i3] = state;
   const { shift, wild } = mask;
   for (const char of text) {
@@ -73,7 +73,7 @@ export function moveState(
     i3 |= i2 >>> 1;
   }
   return [i0, i1, i2, i3];
-}
+};
 
 /** あいまい検索結果
  *
@@ -108,18 +108,21 @@ export interface AsearchResult {
  * @param source 検索対象の文字列
  * @param option search options
  */
-export function Asearch(source: string, option?: SearchOption): AsearchResult {
+export const Asearch = (
+  source: string,
+  option?: SearchOption,
+): AsearchResult => {
   const mask = makeMask(source, option);
 
-  function test(str: string, distance: 0 | 1 | 2 | 3 = 0) {
+  const test = (str: string, distance: 0 | 1 | 2 | 3 = 0): boolean => {
     if (str === "") return distance === source.length;
     const state = moveState(str, mask);
     return (state[distance] & mask.accept) !== 0;
-  }
+  };
 
-  function match(
+  const match = (
     str: string,
-  ): MatchResult {
+  ): MatchResult => {
     if (str === "") {
       return 3 < source.length
         ? { found: false }
@@ -135,11 +138,11 @@ export function Asearch(source: string, option?: SearchOption): AsearchResult {
       : (state[3] & mask.accept) !== 0
       ? { found: true, distance: 3 }
       : { found: false };
-  }
+  };
 
   return {
     test,
     match,
     source,
   };
-}
+};
