@@ -83,7 +83,7 @@ export type MatchResult = {
   found: false;
 } | {
   found: true;
-  distance: 0 | 1 | 2 | 3;
+  distance: number;
 };
 export interface AsearchResult {
   /** 検索対象の文字列 */ source: string;
@@ -123,7 +123,7 @@ export function Asearch(source: string, option?: SearchOption): AsearchResult {
     if (str === "") {
       return 3 < source.length
         ? { found: false }
-        : { found: true, distance: source.length as 0 | 1 | 2 | 3 };
+        : { found: true, distance: source.length };
     }
     const state = moveState(str, mask);
     return (state[0] & mask.accept) !== 0
