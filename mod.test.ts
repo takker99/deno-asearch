@@ -138,8 +138,9 @@ Deno.test("check `match()`", async (t) => {
       ["漢和辞典", 4],
       ["漢字についての文字列？", 6],
       ["", 5],
+      ["漢っていう文字だけ入った文章", 11],
     ],
-  }, { maxDistance: 10 });
+  }, { maxDistance: 11 });
 });
 
 const testMatch = async (
