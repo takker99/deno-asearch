@@ -1,4 +1,4 @@
-import { Asearch } from "./mod.ts";
+import { Asearch, SearchOption } from "./mod.ts";
 import {
   assert,
   assertEquals,
@@ -108,7 +108,7 @@ const testData: Record<string, [string, number][]> = {
     ["漢字文字烈", 1],
     ["漢字辞典", 3],
     ["漢和辞典", 4],
-    ["", 4],
+    ["", 5],
   ],
   "emoji✅": [
     ["emoji✅", 0],
@@ -121,22 +121,57 @@ const testData: Record<string, [string, number][]> = {
   ],
 };
 Deno.test("check `match()`", async (t) => {
-  for (const [pattern, candidates] of Object.entries(testData)) {
-    await t.step(`pattern ${pattern}`, async ({ step }) => {
-      const { match } = Asearch(pattern);
-      for (const [text, distance] of candidates) {
-        if (distance < 4) {
-          await step(
-            `Levenshtein distance from "${text}" should be ${distance}`,
-            () => assertEquals(match(text), { found: true, distance }),
-          );
-        } else {
-          await step(
-            `Levenshtein distance from "${text}" should be more than 3`,
-            () => assertEquals(match(text), { found: false }),
-          );
-        }
-      }
-    });
-  }
+  await testMatch(t, testData);
+  await testMatch(t, {
+    hamburger: [
+      ["hamburger", 0],
+      ["humbarger", 2],
+      ["hamjarrger", 3],
+      ["hamなんとかger", 4],
+    ],
+    "漢字文字列": [
+      ["漢字文字列", 0],
+      ["漢字の文字列", 1],
+      ["漢字文字", 1],
+      ["漢字文字烈", 1],
+      ["漢字辞典", 3],
+      ["漢和辞典", 4],
+      ["漢字についての文字列？", 6],
+      ["", 5],
+    ],
+  }, { maxDistance: 10 });
 });
+
+const testMatch = async (
+  t: Deno.TestContext,
+  data: Record<string, [string, number][]>,
+  options?: SearchOption & { maxDistance?: number },
+) => {
+  await t.step(`maxDistance > ${options?.maxDistance ?? 3}`, async (t) => {
+    for (const [pattern, candidates] of Object.entries(data)) {
+      await t.step(`pattern ${pattern}`, async ({ step }) => {
+        const { match } = Asearch(pattern, options);
+        for (const [text, distance] of candidates) {
+          if (distance <= (options?.maxDistance ?? 3)) {
+            await step(
+              `Levenshtein distance from "${text}" should be ${distance}`,
+              () =>
+                assertEquals(match(text, options?.maxDistance), {
+                  found: true,
+                  distance,
+                }),
+            );
+          } else {
+            await step(
+              `Levenshtein distance from "${text}" should be more than 3`,
+              () =>
+                assertEquals(match(text, options?.maxDistance), {
+                  found: false,
+                }),
+            );
+          }
+        }
+      });
+    }
+  });
+};
