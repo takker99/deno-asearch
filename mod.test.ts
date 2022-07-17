@@ -29,6 +29,9 @@ Deno.test("check `test()`", async (t) => {
     assert(test("abdde", 1));
     assert(test("abdde", 2));
     assert(test("abdde", 3));
+    assert(test("abdce", 2));
+    assert(test("abdce", 3));
+    assert(test("acbed", 4));
   });
 
   await t.step("ignoreCase: false", () => {
