@@ -1,6 +1,16 @@
 const INITPATTERN = 0x80000000;
-export const INITSTATE = [INITPATTERN, 0, 0, 0] as State;
 const wildCard = " ";
+
+/** 初期状態の有限オートマトンを作る */
+export const makeInitState = (
+  maxDistance: number,
+): State => {
+  const state: State = [INITPATTERN];
+  for (let i = 1; i <= maxDistance; i++) {
+    state.push(0);
+  }
+  return state;
+};
 
 /** masks used for Bitap algorithm */
 export interface Mask {
@@ -48,7 +58,7 @@ export const makeMask = (source: string, option?: SearchOption): Mask => {
   return { shift, wild, accept };
 };
 
-export type State = [number, number, number, number];
+export type State = [number, ...number[]];
 /** 状態遷移機械に文字列を入力する
  *
  * @param text 入力する文字列
@@ -58,21 +68,26 @@ export type State = [number, number, number, number];
 export const moveState = (
   text: string,
   mask: Omit<Mask, "accept">,
-  state = INITSTATE,
+  state: State,
 ): State => {
-  let [i0, i1, i2, i3] = state;
+  const bits: State = [...state];
   const { shift, wild } = mask;
   for (const char of text) {
     const charMask = shift.get(char) ?? 0;
-    i3 = (i3 & wild) | ((i3 & charMask) >>> 1) | (i2 >>> 1) | i2;
-    i2 = (i2 & wild) | ((i2 & charMask) >>> 1) | (i1 >>> 1) | i1;
-    i1 = (i1 & wild) | ((i1 & charMask) >>> 1) | (i0 >>> 1) | i0;
-    i0 = (i0 & wild) | ((i0 & charMask) >>> 1);
-    i1 |= i0 >>> 1;
-    i2 |= i1 >>> 1;
-    i3 |= i2 >>> 1;
+    if (bits.length > 1) {
+      for (let i = bits.length - 1; i > 0; i--) {
+        bits[i] = (bits[i] & wild) | ((bits[i] & charMask) >>> 1) |
+          (bits[i - 1] >>> 1) | bits[i - 1];
+      }
+    }
+    bits[0] = (bits[0] & wild) | ((bits[0] & charMask) >>> 1);
+    if (bits.length > 1) {
+      for (let i = 1; i < bits.length; i++) {
+        bits[i] |= bits[i - 1] >>> 1;
+      }
+    }
   }
-  return [i0, i1, i2, i3];
+  return bits;
 };
 
 /** あいまい検索結果
@@ -92,16 +107,19 @@ export interface AsearchResult {
    *
    * @param str 判定する文字列
    * @param distance 指定するLevenshtein距離
+   * @return マッチしたら`true`
    */
-  test: (str: string, distance: 0 | 1 | 2 | 3) => boolean;
+  test: (str: string, distance: number) => boolean;
 
   /** 与えた文字列と検索対象文字列とのLevenshtein距離を返す
    *
-   * Levenshtein距離が4以上の場合はマッチしなかったとみなす
+   * Levenshtein距離が`maxDistance`を超える場合は、マッチしなかったとみなす
    *
    * @param str この文字列との距離を計算する
+   * @param [maxDistance=3] 許容するLevenshtein距離
+   * @return 編集距離とマッチ結果を返す
    */
-  match: (str: string) => MatchResult;
+  match: (str: string, maxDistance?: number) => MatchResult;
 }
 /** あいまい検索を実行する函数を作る
  *
@@ -114,30 +132,28 @@ export const Asearch = (
 ): AsearchResult => {
   const mask = makeMask(source, option);
 
-  const test = (str: string, distance: 0 | 1 | 2 | 3 = 0): boolean => {
+  const test = (str: string, distance = 0): boolean => {
     if (str === "") return distance === source.length;
-    const state = moveState(str, mask);
+    const initState = makeInitState(distance);
+    const state = moveState(str, mask, initState);
     return (state[distance] & mask.accept) !== 0;
   };
 
   const match = (
     str: string,
+    maxDistance = 3,
   ): MatchResult => {
-    if (str === "") {
-      return 3 < source.length
+    if (source.length === 0 || str.length === 0) {
+      const distance = Math.max(source.length, str.length);
+      return distance > maxDistance
         ? { found: false }
-        : { found: true, distance: source.length };
+        : { found: true, distance };
     }
-    const state = moveState(str, mask);
-    return (state[0] & mask.accept) !== 0
-      ? { found: true, distance: 0 }
-      : (state[1] & mask.accept) !== 0
-      ? { found: true, distance: 1 }
-      : (state[2] & mask.accept) !== 0
-      ? { found: true, distance: 2 }
-      : (state[3] & mask.accept) !== 0
-      ? { found: true, distance: 3 }
-      : { found: false };
+
+    const initState = makeInitState(maxDistance);
+    const state = moveState(str, mask, initState);
+    const distance = state.findIndex((s) => (s & mask.accept) !== 0);
+    return distance >= 0 ? { found: true, distance } : { found: false };
   };
 
   return {
