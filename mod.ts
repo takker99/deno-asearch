@@ -39,8 +39,9 @@ export const makeMask = (source: string, option?: SearchOption): Mask => {
   const shift = new Map<string, number>();
   let wild = 0;
   let accept = INITPATTERN;
+  let prevChar = "";
   for (const char of source) {
-    if (char === wildCard) {
+    if (char === wildCard && char !== prevChar) {
       wild |= accept;
     } else {
       for (
@@ -53,6 +54,7 @@ export const makeMask = (source: string, option?: SearchOption): Mask => {
       }
       accept >>>= 1;
     }
+    prevChar = char;
   }
 
   return { shift, wild, accept };
@@ -131,9 +133,17 @@ export const Asearch = (
   option?: SearchOption,
 ): AsearchResult => {
   const mask = makeMask(source, option);
+  const lengthWithoutWild = source.split(wildCard).join("").length;
+  const canPartiallyMatch = source.length !== lengthWithoutWild;
 
   const test = (str: string, distance = 0): boolean => {
-    if (str === "") return distance === source.length;
+    if (
+      lengthWithoutWild > str.length + distance ||
+      (!canPartiallyMatch && (str.length > source.length + distance))
+    ) {
+      return false;
+    }
+    if (str === "") return distance === lengthWithoutWild;
     const initState = makeInitState(distance);
     const state = moveState(str, mask, initState);
     return (state[distance] & mask.accept) !== 0;
@@ -143,11 +153,14 @@ export const Asearch = (
     str: string,
     maxDistance = 3,
   ): MatchResult => {
-    if (source.length === 0 || str.length === 0) {
-      const distance = Math.max(source.length, str.length);
-      return distance > maxDistance
-        ? { found: false }
-        : { found: true, distance };
+    if (
+      lengthWithoutWild > str.length + maxDistance ||
+      (!canPartiallyMatch && (str.length > source.length + maxDistance))
+    ) {
+      return { found: false };
+    }
+    if (str === "") {
+      return { found: true, distance: lengthWithoutWild };
     }
 
     const initState = makeInitState(maxDistance);
