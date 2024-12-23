@@ -2,7 +2,7 @@ const INITPATTERN = 0x80000000;
 const wildCard = " ";
 
 /** 初期状態の有限オートマトンを作る */
-export const makeInitState = (
+const makeInitState = (
   maxDistance: number,
 ): State => {
   const state: State = [INITPATTERN];
@@ -13,7 +13,7 @@ export const makeInitState = (
 };
 
 /** masks used for Bitap algorithm */
-export interface Mask {
+interface Mask {
   /** masks represented by occurrences of each charcter */
   shift: Map<string, number>;
   /** the wild mask */
@@ -23,7 +23,7 @@ export interface Mask {
 }
 
 /** options for search */
-export interface SearchOption {
+export interface FilterOptions {
   /** turn false if you want to disable case insensitive search
    *
    * @default true
@@ -34,7 +34,7 @@ export interface SearchOption {
  *
  * @param source 検索対象の文字列
  */
-export const makeMask = (source: string, option?: SearchOption): Mask => {
+const makeMask = (source: string, option?: FilterOptions): Mask => {
   const { ignoreCase = true } = option ?? {};
   const shift = new Map<string, number>();
   let wild = 0;
@@ -60,14 +60,14 @@ export const makeMask = (source: string, option?: SearchOption): Mask => {
   return { shift, wild, accept };
 };
 
-export type State = [number, ...number[]];
+type State = [number, ...number[]];
 /** 状態遷移機械に文字列を入力する
  *
  * @param text 入力する文字列
  * @param mask bit masks
  * @param state 入力前の状態遷移機械
  */
-export const moveState = (
+const moveState = (
   text: string,
   mask: Omit<Mask, "accept">,
   state: State,
@@ -92,86 +92,41 @@ export const moveState = (
   return bits;
 };
 
-/** あいまい検索結果
+/** 与えた文字列と検索対象文字列とのLevenshtein距離を返す
  *
- * 見つかった場合はLevenshtein距離も格納する
+ * Levenshtein距離が`maxDistance`を超える場合は、マッチしなかったとみなす
+ *
+ * @param str この文字列との距離を計算する
+ * @param [maxDistance=0] 許容するLevenshtein距離
+ * @return 編集距離とマッチ結果を返す。マッチしなかったら`Infinity`を返す
  */
-export type MatchResult = {
-  found: false;
-} | {
-  found: true;
-  distance: number;
-};
-export interface AsearchResult {
-  /** 検索対象の文字列 */ source: string;
+export type Filter = (str: string, maxDistance?: number) => number;
 
-  /** 与えた文字列が特定のLevenshtein距離でマッチするか判定する
-   *
-   * @param str 判定する文字列
-   * @param distance 指定するLevenshtein距離
-   * @return マッチしたら`true`
-   */
-  test: (str: string, distance: number) => boolean;
-
-  /** 与えた文字列と検索対象文字列とのLevenshtein距離を返す
-   *
-   * Levenshtein距離が`maxDistance`を超える場合は、マッチしなかったとみなす
-   *
-   * @param str この文字列との距離を計算する
-   * @param [maxDistance=3] 許容するLevenshtein距離
-   * @return 編集距離とマッチ結果を返す
-   */
-  match: (str: string, maxDistance?: number) => MatchResult;
-}
-/** あいまい検索を実行する函数を作る
+/** make a filter function which calculates Levenshtein distance by Bitap algorithm
  *
  * @param source 検索対象の文字列
  * @param option search options
  */
-export const Asearch = (
+export const makeFilter = (
   source: string,
-  option?: SearchOption,
-): AsearchResult => {
+  option?: FilterOptions,
+): Filter => {
   const mask = makeMask(source, option);
   const lengthWithoutWild = source.split(wildCard).join("").length;
-  const canPartiallyMatch = source.length !== lengthWithoutWild;
+  const sourceLength = [...source].length;
+  const canPartiallyMatch = sourceLength !== lengthWithoutWild;
 
-  const test = (str: string, distance = 0): boolean => {
+  return (str, maxDistance = 0) => {
+    if (str === "") return lengthWithoutWild;
+    const strLength = [...str].length;
     if (
-      lengthWithoutWild > str.length + distance ||
-      (!canPartiallyMatch && (str.length > source.length + distance))
-    ) {
-      return false;
-    }
-    if (str === "") return distance === lengthWithoutWild;
-    const initState = makeInitState(distance);
-    const state = moveState(str, mask, initState);
-    return (state[distance] & mask.accept) !== 0;
-  };
-
-  const match = (
-    str: string,
-    maxDistance = 3,
-  ): MatchResult => {
-    if (
-      lengthWithoutWild > str.length + maxDistance ||
-      (!canPartiallyMatch && (str.length > source.length + maxDistance))
-    ) {
-      return { found: false };
-    }
-    if (str === "") {
-      return { found: true, distance: lengthWithoutWild };
-    }
+      lengthWithoutWild > strLength + maxDistance ||
+      (!canPartiallyMatch && (strLength > sourceLength + maxDistance))
+    ) return Infinity;
 
     const initState = makeInitState(maxDistance);
     const state = moveState(str, mask, initState);
     const distance = state.findIndex((s) => (s & mask.accept) !== 0);
-    return distance >= 0 ? { found: true, distance } : { found: false };
-  };
-
-  return {
-    test,
-    match,
-    source,
+    return distance >= 0 ? distance : Infinity;
   };
 };
