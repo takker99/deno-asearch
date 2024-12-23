@@ -1,0 +1,13 @@
+{
+  "name": "@takker/bitap",
+  "version": "0.0.0",
+  "imports": {
+    "@takker/bitap": "./mod.ts",
+    "@std/assert": "jsr:@std/assert@1"
+  },
+  "exports": "./mod.ts",
+  "tasks": {
+    "fix": "deno fmt && deno lint --fix && deno doc --lint **/*.ts && deno test --doc --parallel --shuffle && deno publish --dry-run --allow-dirty",
+    "check": "deno fmt --check && deno lint && deno doc --lint **/*.ts && deno test --doc --parallel --shuffle && deno publish --dry-run"
+  }
+}
